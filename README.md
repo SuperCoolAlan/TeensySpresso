@@ -7,8 +7,9 @@ The heating element's control circuit bypasses the OEM brew thermistor which lea
 
 ## TODO
 - [ ] Install and test :sweat_smile:
-- [ ] Enable WINC1500 WiFi module :signal_strength:
+- [x] Enable WINC1500 WiFi module :signal_strength:
   - [ ] Host WiFi from module, enable incoming connections
+  - [ ] Update firmware to 19.6.1 by creating new BSP for teensy or using supported board. My firmware version is 19.4.4
 - [ ] Host Web-UI for monitoring and control :chart:
   - [ ] Monitor w/ charts
   - [ ] Configurable temperature setpoint
