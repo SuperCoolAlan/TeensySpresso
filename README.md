@@ -16,7 +16,7 @@ The heating element's control circuit bypasses the OEM brew thermistor which lea
   - [ ] Configurable temperature setpoint
   - [ ] Configurable mode (brew temp, steam temp)
 - [ ] Docs :scroll:
-  - [ ] Circuit diagram
+  - [x] Circuit diagram
   - [ ] Pics
   - [x] BOM
 - [ ] Results
