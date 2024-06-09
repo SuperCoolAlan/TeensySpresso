@@ -13,8 +13,14 @@ The heating element's control circuit bypasses the OEM brew thermistor which lea
 - [x] Enable WINC1500 WiFi module :signal_strength:
   - [x] Host WiFi from module, enable incoming connections
   - [x] Update firmware to 19.6.1 by creating new BSP for teensy or using supported board. My firmware version is 19.4.4
-- [ ] Assemble print of v2
+- [x] Assemble print of v2
+- [ ] MQTT
+  - [x] deploy MQTT broker to cloud
+  - [x] MQTT client in Teensy connects to MQTT broker in cloud 
+  - [ ] access by domain rather than IP
 - [ ] Host Web-UI for monitoring and control :chart:
+  - [ ] 
+  - [ ] Host Next.js app on free service (Vercel?)
   - [ ] Monitor w/ charts
   - [ ] Configurable temperature setpoint
   - [ ] Configurable mode (brew temp, steam temp)
