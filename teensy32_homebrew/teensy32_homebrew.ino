@@ -3,6 +3,7 @@
 // June 2024
 
 #include <SPI.h>
+#include <WiFi101.h>
 #include "Adafruit_MAX31855.h"
 #include <PID_v1_bc.h>
 
@@ -11,19 +12,32 @@
 #define DIN 12
 
 #define RelayPin 6
-#define RedLEDOne 23
-#define RedLEDTwo 20 
+#define RedLEDOne 20 // bright light shows when PID is on
+#define RedLEDTwo 23 // status for system
 
+#include "arduino_secrets.h" 
+///////please enter your sensitive data in the Secret tab/arduino_secrets.h
+char ssid[] = SECRET_SSID;        // your network SSID (name)
+char pass[] = SECRET_PASS;    // your network password (use for WPA, or use as key for WEP)
+int keyIndex = 0;                 // your network key Index number (needed only for WEP)
+#define WINC_CS 9
+#define WINC_IRQ 8
+#define WINC_RST 4
+#define WINC_EN -1
+
+int status = WL_IDLE_STATUS;
+WiFiServer server(80);
+
+// Connect to Temperature Module
 Adafruit_MAX31855 tc0(SCLK, CS, DIN);
 
 //Define PID vars
 double Setpoint, Input, Output;
+int WindowSize = 1000;
+unsigned long windowStartTime;
 
 //Specify the links and initial tuning parameters
 PID myPID(&Input, &Output, &Setpoint, 1, 1, 1, DIRECT);
-
-int WindowSize = 1000;
-unsigned long windowStartTime;
 
 void setup() {
   // create serial
@@ -34,32 +48,39 @@ void setup() {
   // configure SPI outputs
   pinMode(CS, OUTPUT);
   digitalWrite(CS, HIGH);
+  pinMode(RedLEDTwo, OUTPUT);
 
   setupPid();
   
   delay(500);
 }
 
+void loop() {
+  double Input = tc0.readCelsius();
+
+  calculatePid(Input);
+  delay(500);
+}
+
+//
+// PID functions
+//
+
 void setupPid() {
     pinMode(RelayPin, OUTPUT);
+    pinMode(RedLEDOne, OUTPUT);
+    
     windowStartTime = millis();
   
-    //initialize the variables we're linked to
-    Setpoint = 28;
+    //initialize the pid variables we're linked to
+    Setpoint = 100;
+    Input = 0;
   
     //tell the PID to range between 0 and the full window size
     myPID.SetOutputLimits(0, WindowSize);
   
     //turn the PID on
     myPID.SetMode(AUTOMATIC);
-}
-
-void loop() {
-  double Input = tc0.readCelsius();
-
-  calculatePid(Input);
-
-  delay(500);
 }
 
 void calculatePid(double temp) {
@@ -85,8 +106,13 @@ void calculatePid(double temp) {
       digitalWrite(RelayPin, LOW);
       digitalWrite(RedLEDOne, LOW);
     }
+    digitalWrite(RedLEDTwo, !digitalRead(RedLEDTwo));
     Serial.print("Relay: ");
     Serial.println(digitalRead(RelayPin));
   }
-  
 }
+
+//
+// WiFi Functions
+//
+

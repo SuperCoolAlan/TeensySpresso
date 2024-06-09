@@ -47,12 +47,17 @@ static const int MAX_PAYLOAD_SIZE = 1024;
 #define CMD_HELLO             0x99
 
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(9600);
+  while (!Serial) {
+    ; // wait for serial port to connect. Needed for native USB port only
+  }
+  Serial.println(F("Updating WINC1500 Firmware"));
 
   // Setting pins
   WiFi.setPins(WINC_CS, WINC_IRQ, WINC_RST, WINC_EN);
 
   nm_bsp_init();
+  Serial.println(F("Initialized nm_bsp"));
   if (m2m_wifi_download_mode() != M2M_SUCCESS) {
     Serial.println(F("Failed to put the WiFi module in download mode"));
     while (true)
