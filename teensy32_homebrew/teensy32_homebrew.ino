@@ -6,6 +6,7 @@
 #include <WiFi101.h>
 #include "Adafruit_MAX31855.h"
 #include <PID_v1_bc.h>
+#include "TeensyThreads.h"
 
 #define CS 10
 #define SCLK 13
@@ -33,6 +34,7 @@ WiFiServer server(80);
 
 // Connect to Temperature Module
 Adafruit_MAX31855 tc0(SCLK, CS, DIN);
+double latestTemp;
 
 //Define PID vars
 double Setpoint, Input, Output;
@@ -55,17 +57,26 @@ void setup() {
   digitalWrite(RedLEDTwo, HIGH);
 
   setupPid();
+  // Setting pins
   setupWiFi();
+
+  threads.addThread(queryTemp);
+  threads.addThread(runWiFiServer);
+  threads.addThread(calculatePid);
 }
 
 void loop() {
-
   blink();
-  runWiFiServer();
+  // runWiFiServer();
+  delay(1);
+}
 
-  // double Input = tc0.readCelsius();
-
-  // calculatePid(Input);
+void queryTemp() {
+  while(1) {
+    // Serial.println("running queryTemp()");
+    latestTemp = tc0.readCelsius();
+    threads.yield();
+  }
 }
 
 void blink() {
@@ -100,30 +111,34 @@ void setupPid() {
     myPID.SetMode(AUTOMATIC);
 }
 
-void calculatePid(double temp) {
-  if(isnan(temp)){
-    Serial.print("MAX31855 error: ");
-    Serial.println(tc0.readError());
-  }else{
-    Serial.print("temp: "); 
-    Serial.println(temp);
-    
-    myPID.Compute();
+void calculatePid() {
+  while(1) {
+    // Serial.println("running calculatePid()");
+    if(isnan(latestTemp)) {
+      Serial.print("MAX31855 error: ");
+      Serial.println(tc0.readError());
+    } else{
+      // Serial.print("temp: "); 
+      // Serial.println(latestTemp);
+      
+      myPID.Compute();
 
-    unsigned long now = millis();
-    if (now - windowStartTime > WindowSize) { //time to shift the Relay Window
-      windowStartTime += WindowSize;
+      unsigned long now = millis();
+      if (now - windowStartTime > WindowSize) { //time to shift the Relay Window
+        windowStartTime += WindowSize;
+      }
+      if (Output > now - windowStartTime) {
+        digitalWrite(RelayPin, HIGH);
+        digitalWrite(RedLEDOne, HIGH);
+      }
+      else {
+        digitalWrite(RelayPin, LOW);
+        digitalWrite(RedLEDOne, LOW);
+      }
+      // Serial.print("Relay: ");
+      // Serial.println(digitalRead(RelayPin));
     }
-    if (Output > now - windowStartTime) {
-      digitalWrite(RelayPin, HIGH);
-      digitalWrite(RedLEDOne, HIGH);
-    }
-    else {
-      digitalWrite(RelayPin, LOW);
-      digitalWrite(RedLEDOne, LOW);
-    }
-    Serial.print("Relay: ");
-    Serial.println(digitalRead(RelayPin));
+    threads.yield();
   }
 }
 
@@ -132,79 +147,83 @@ void calculatePid(double temp) {
 //
 
 void runWiFiServer() {
-  if (status != WiFi.status()) {
-    // it has changed update the variable
-    status = WiFi.status();
+  while(1) {
+    Serial.println("running runWiFiServer");
+    Serial.println(status);
+    Serial.println(WiFi.status()); // this is where WiFi.status cannot be found
+    if (status != WiFi.status()) {
+      // it has changed update the variable
+      status = WiFi.status();
 
-    if (status == WL_AP_CONNECTED) {
-      byte remoteMac[6];
+      if (status == WL_AP_CONNECTED) {
+        byte remoteMac[6];
 
-      // a device has connected to the AP
-      Serial.print("Device connected to AP, MAC address: ");
-      WiFi.APClientMacAddress(remoteMac);
-      printMacAddress(remoteMac);
-    } else {
-      // a device has disconnected from the AP, and we are back in listening mode
-      Serial.println("Device disconnected from AP");
-    }
-  }
-
-  WiFiClient client = server.available();   // listen for incoming clients
-
-  if (client) {                             // if you get a client,
-    Serial.println("new client");           // print a message out the serial port
-    String currentLine = "";                // make a String to hold incoming data from the client
-    while (true) {            // loop while the client's connected
-      if (client.available()) {             // if there's bytes to read from the client,
-        char c = client.read();             // read a byte, then
-        Serial.write(c);                    // print it out the serial monitor
-        if (c == '\n') {                    // if the byte is a newline character
-
-          // if the current line is blank, you got two newline characters in a row.
-          // that's the end of the client HTTP request, so send a response:
-          if (currentLine.length() == 0) {
-            // HTTP headers always start with a response code (e.g. HTTP/1.1 200 OK)
-            // and a content-type so the client knows what's coming, then a blank line:
-            client.println("HTTP/1.1 200 OK");
-            client.println("Content-type:text/html");
-            client.println();
-
-            // the content of the HTTP response follows the header:
-            client.print("Click <a href=\"/H\">here</a> turn the LED on<br>");
-            client.print("Click <a href=\"/L\">here</a> turn the LED off<br>");
-
-            // The HTTP response ends with another blank line:
-            client.println();
-            // break out of the while loop:
-            break;
-          }
-          else {      // if you got a newline, then clear currentLine:
-            currentLine = "";
-          }
-        }
-        else if (c != '\r') {    // if you got anything else but a carriage return character,
-          currentLine += c;      // add it to the end of the currentLine
-        }
-
-        // Check to see if the client request was "GET /H" or "GET /L":
-        if (currentLine.endsWith("GET /H")) {
-          digitalWrite(RedLEDOne, HIGH);               // GET /H turns the LED on
-        }
-        if (currentLine.endsWith("GET /L")) {
-          digitalWrite(RedLEDOne, LOW);                // GET /L turns the LED off
-        }
+        // a device has connected to the AP
+        Serial.print("Device connected to AP, MAC address: ");
+        WiFi.APClientMacAddress(remoteMac);
+        printMacAddress(remoteMac);
+      } else {
+        // a device has disconnected from the AP, and we are back in listening mode
+        Serial.println("Device disconnected from AP");
       }
     }
-    // close the connection:
-    client.stop();
-    Serial.println("client disconnected");
+
+    WiFiClient client = server.available();   // listen for incoming clients
+
+    if (client) {                             // if you get a client,
+      Serial.println("new client");           // print a message out the serial port
+      String currentLine = "";                // make a String to hold incoming data from the client
+      while (true) {            // loop while the client's connected
+        if (client.available()) {             // if there's bytes to read from the client,
+          char c = client.read();             // read a byte, then
+          Serial.write(c);                    // print it out the serial monitor
+          if (c == '\n') {                    // if the byte is a newline character
+
+            // if the current line is blank, you got two newline characters in a row.
+            // that's the end of the client HTTP request, so send a response:
+            if (currentLine.length() == 0) {
+              // HTTP headers always start with a response code (e.g. HTTP/1.1 200 OK)
+              // and a content-type so the client knows what's coming, then a blank line:
+              client.println("HTTP/1.1 200 OK");
+              client.println("Content-type:text/html");
+              client.println();
+
+              // the content of the HTTP response follows the header:
+              client.print("Click <a href=\"/H\">here</a> turn the LED on<br>");
+              client.print("Click <a href=\"/L\">here</a> turn the LED off<br>");
+
+              // The HTTP response ends with another blank line:
+              client.println();
+              // break out of the while loop:
+              break;
+            }
+            else {      // if you got a newline, then clear currentLine:
+              currentLine = "";
+            }
+          }
+          else if (c != '\r') {    // if you got anything else but a carriage return character,
+            currentLine += c;      // add it to the end of the currentLine
+          }
+
+          // Check to see if the client request was "GET /H" or "GET /L":
+          if (currentLine.endsWith("GET /H")) {
+            digitalWrite(RedLEDOne, HIGH);               // GET /H turns the LED on
+          }
+          if (currentLine.endsWith("GET /L")) {
+            digitalWrite(RedLEDOne, LOW);                // GET /L turns the LED off
+          }
+        }
+      }
+      // close the connection:
+      client.stop();
+      Serial.println("client disconnected");
+    }
+  threads.yield();
   }
 }
 
 void setupWiFi() {
-  // Setting pins
   WiFi.setPins(WINC_CS, WINC_IRQ, WINC_RST, WINC_EN);
-
   // check for the presence of the shield:
   if (WiFi.status() == WL_NO_SHIELD) {
     Serial.println("WiFi shield not present");
