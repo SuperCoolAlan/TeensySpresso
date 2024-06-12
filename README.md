@@ -16,10 +16,10 @@ The heating element's control circuit bypasses the OEM brew thermistor which lea
 - [x] Assemble print of v2
 - [ ] MQTT
   - [x] deploy MQTT broker to cloud
-  - [x] MQTT client in Teensy connects to MQTT broker in cloud 
-  - [ ] access by domain rather than IP
+  - [x] MQTT client in Teensy connects to MQTT broker in cloud
+  - [ ] allow use of WiFi and Temp Sensors via SPI by using CS lock
+  - [ ] access MQTT broker by domain rather than IP
 - [ ] Host Web-UI for monitoring and control :chart:
-  - [ ] 
   - [ ] Host Next.js app on free service (Vercel?)
   - [ ] Monitor w/ charts
   - [ ] Configurable temperature setpoint
