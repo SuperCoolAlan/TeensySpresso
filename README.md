@@ -6,7 +6,7 @@ All of the existing Open Source solutions for an integrated PID controller were 
 The heating element's control circuit bypasses the OEM brew thermistor which leaves the steam and safety circuits intact.
 
 ## TODO
-- [ ] Install and test :sweat_smile:
+- [x] Install and test
 - [x] LED pad spacing
 - [x] Relay footprint
 - [x] Update schematic to connect WINC_EN to a pin... oops
@@ -18,9 +18,9 @@ The heating element's control circuit bypasses the OEM brew thermistor which lea
   - [x] deploy MQTT broker to cloud
   - [x] MQTT client in Teensy connects to MQTT broker in cloud
   - [ ] allow use of WiFi and Temp Sensors via SPI by using CS lock
-  - [ ] access MQTT broker by domain rather than IP
+  - [x] access MQTT broker by domain rather than IP
 - [ ] Host Web-UI for monitoring and control :chart:
-  - [ ] Host Next.js app on free service (Vercel?)
+  - [ ] Host Next.js app on (Vercel?)
   - [ ] Monitor w/ charts
   - [ ] Configurable temperature setpoint
   - [ ] Configurable mode (brew temp, steam temp)
